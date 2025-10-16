@@ -88,3 +88,74 @@ def create_alert_log(db: Session, job_id: int, channel: str, status: str, messag
 def list_alert_logs(db: Session, limit: int = 100, offset: int = 0):
 	stmt = select(models.AlertLog).order_by(desc(models.AlertLog.created_at)).offset(offset).limit(limit)
 	return db.execute(stmt).scalars().all()
+
+
+# Suggestions / Autocomplete helpers
+def suggest_keywords(db: Session, q: str, limit: int = 10) -> list[str]:
+    like = f"%{q}%" if q else "%"
+    titles = (
+        db.execute(
+            select(models.Job.title)
+            .where(models.Job.title.ilike(like))
+            .group_by(models.Job.title)
+            .order_by(func.count(models.Job.id).desc())
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )
+    keywords = (
+        db.execute(
+            select(models.Job.keywords)
+            .where(models.Job.keywords.is_not(None))
+            .where(models.Job.keywords.ilike(like))
+            .group_by(models.Job.keywords)
+            .order_by(func.count(models.Job.id).desc())
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )
+    merged = []
+    seen = set()
+    for term in [*titles, *keywords]:
+        if term and term not in seen:
+            merged.append(term)
+            seen.add(term)
+        if len(merged) >= limit:
+            break
+    return merged
+
+
+def suggest_companies(db: Session, q: str, limit: int = 10) -> list[str]:
+    like = f"%{q}%" if q else "%"
+    rows = (
+        db.execute(
+            select(models.Job.company)
+            .where(models.Job.company.is_not(None))
+            .where(models.Job.company.ilike(like))
+            .group_by(models.Job.company)
+            .order_by(func.count(models.Job.id).desc())
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )
+    return [r for r in rows if r]
+
+
+def suggest_locations(db: Session, q: str, limit: int = 10) -> list[str]:
+    like = f"%{q}%" if q else "%"
+    rows = (
+        db.execute(
+            select(models.Job.location)
+            .where(models.Job.location.is_not(None))
+            .where(models.Job.location.ilike(like))
+            .group_by(models.Job.location)
+            .order_by(func.count(models.Job.id).desc())
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )
+    return [r for r in rows if r]

@@ -17,12 +17,21 @@ export const api = {
 		const q = new URLSearchParams(params)
 		return http(`/jobs?${q.toString()}`)
 	},
+	suggestKeywords(q = '', limit = 10) {
+		return http(`/suggest/keywords?q=${encodeURIComponent(q)}&limit=${limit}`)
+	},
+	suggestCompanies(q = '', limit = 10) {
+		return http(`/suggest/companies?q=${encodeURIComponent(q)}&limit=${limit}`)
+	},
+	suggestLocations(q = '', limit = 10) {
+		return http(`/suggest/locations?q=${encodeURIComponent(q)}&limit=${limit}`)
+	},
 	alerts(params = {}) {
 		const q = new URLSearchParams(params)
 		return http(`/alerts?${q.toString()}`)
 	},
-	scrape({ keywords, location }) {
-		const q = new URLSearchParams({ keywords, location })
+	scrape({ keywords, location, max_pages = 10 }) {
+		const q = new URLSearchParams({ keywords, location, max_pages })
 		return http(`/scrape?${q.toString()}`, { method: 'POST' })
 	}
 }

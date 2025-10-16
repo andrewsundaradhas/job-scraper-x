@@ -36,8 +36,8 @@ def get_jobs(
 
 
 @router.post("/scrape")
-def trigger_scrape(keywords: str, location: str, db: Session = Depends(get_db)):
-	results = scrape_linkedin_jobs(keywords=keywords, location=location, max_pages=3)
+def trigger_scrape(keywords: str, location: str, max_pages: int = 10, db: Session = Depends(get_db)):
+    results = scrape_linkedin_jobs(keywords=keywords, location=location, max_pages=max_pages)
 	new_jobs = []
 	for r in results:
 		posted_date = None
@@ -69,3 +69,18 @@ def trigger_scrape(keywords: str, location: str, db: Session = Depends(get_db)):
 		send_telegram_alert(db, job.id, text)
 
 	return {"found": len(results), "created": len(new_jobs)}
+
+
+@router.get("/suggest/keywords", response_model=list[str])
+def suggest_keywords(q: str = "", limit: int = 10, db: Session = Depends(get_db)):
+    return crud.suggest_keywords(db, q=q, limit=limit)
+
+
+@router.get("/suggest/companies", response_model=list[str])
+def suggest_companies(q: str = "", limit: int = 10, db: Session = Depends(get_db)):
+    return crud.suggest_companies(db, q=q, limit=limit)
+
+
+@router.get("/suggest/locations", response_model=list[str])
+def suggest_locations(q: str = "", limit: int = 10, db: Session = Depends(get_db)):
+    return crud.suggest_locations(db, q=q, limit=limit)

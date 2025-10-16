@@ -12,6 +12,7 @@ export default function App() {
 	const [jobs, setJobs] = useState([])
 	const [loading, setLoading] = useState(false)
 	const [scraping, setScraping] = useState(false)
+	const [maxPages, setMaxPages] = useState(10)
 
 	const keyword = params.get('q') || undefined
 
@@ -25,7 +26,7 @@ export default function App() {
 	async function runScrape() {
 		setScraping(true)
 		try {
-			await api.scrape({ keywords: keyword || 'Software Engineer', location: filters.location || 'Remote' })
+			await api.scrape({ keywords: keyword || 'Software Engineer', location: filters.location || 'Remote', max_pages: maxPages })
 			await api.jobs({ keyword, ...filters, limit: 50, offset: 0 }).then(setJobs)
 		} finally {
 			setScraping(false)
@@ -38,7 +39,10 @@ export default function App() {
 			<Filters filters={filters} setFilters={setFilters} />
 			<div className="mx-4 my-4 flex items-center justify-between">
 				<h2 className="text-slate-700 dark:text-slate-200 font-semibold">Jobs</h2>
-				<Button onClick={runScrape} disabled={scraping}>{scraping ? 'Scraping…' : 'Run Scrape'}</Button>
+				<div className="flex items-center gap-3">
+					<input type="number" min={1} max={50} value={maxPages} onChange={e=>setMaxPages(Number(e.target.value)||10)} className="w-24 bg-transparent border rounded px-3 py-2" title="Max pages"/>
+					<Button onClick={runScrape} disabled={scraping}>{scraping ? 'Scraping…' : 'Run Scrape'}</Button>
+				</div>
 			</div>
 			{loading ? (
 				<div className="mx-4 text-slate-600 dark:text-slate-300">Loading…</div>

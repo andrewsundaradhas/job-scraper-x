@@ -55,7 +55,7 @@ def _init_driver() -> webdriver.Chrome:
 	return webdriver.Chrome(service=service, options=options)
 
 
-def scrape_linkedin_jobs(keywords: str, location: str, max_pages: int = 3) -> List[dict]:
+def scrape_linkedin_jobs(keywords: str, location: str, max_pages: int = 10) -> List[dict]:
 	url = _build_search_url(keywords, location)
 	driver = _init_driver()
 	jobs: List[dict] = []
@@ -63,13 +63,23 @@ def scrape_linkedin_jobs(keywords: str, location: str, max_pages: int = 3) -> Li
 		driver.get(url)
 		wait = WebDriverWait(driver, 15)
 		current_page = 1
-		while current_page <= max_pages:
+        while current_page <= max_pages:
 			try:
 				wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, SELECTORS["job_cards"])) )
 			except TimeoutException:
 				break
 
-			cards = driver.find_elements(By.CSS_SELECTOR, SELECTORS["job_cards"]) or []
+            # Try to load more cards by scrolling
+            last_height = 0
+            for _ in range(5):
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                WebDriverWait(driver, 5).until(lambda d: True)
+                new_height = driver.execute_script("return document.body.scrollHeight")
+                if new_height == last_height:
+                    break
+                last_height = new_height
+
+            cards = driver.find_elements(By.CSS_SELECTOR, SELECTORS["job_cards"]) or []
 			for card in cards:
 				try:
 					title_el = card.find_element(By.CSS_SELECTOR, SELECTORS["title"]) if SELECTORS["title"] else None
@@ -98,14 +108,17 @@ def scrape_linkedin_jobs(keywords: str, location: str, max_pages: int = 3) -> Li
 					continue
 
 			# Pagination: look for a next button
-			next_buttons = driver.find_elements(By.CSS_SELECTOR, "button[aria-label='Next']")
+            next_buttons = driver.find_elements(By.CSS_SELECTOR, "button[aria-label='Next'], button[aria-label='Next page']")
 			if next_buttons:
 				next_btn = next_buttons[0]
 				if next_btn.is_enabled():
-					next_btn.click()
+                    next_btn.click()
+                    # small delay to mimic human behavior and avoid rate limiting
+                    driver.implicitly_wait(1)
 					current_page += 1
 					continue
 			break
 	finally:
 		driver.quit()
 	return jobs
+
