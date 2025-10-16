@@ -118,6 +118,25 @@ def scrape_advanced(
     return result
 
 
+@router.get("/search", response_model=List[JobRead])
+def search_and_scrape(
+    keyword: str,
+    location: str | None = None,
+    max_pages: int = 5,
+    db: Session = Depends(get_db),
+):
+    # Kick off an advanced scrape synchronously for fresh results
+    cfg = ScrapeConfig(max_pages=max_pages)
+    try:
+        run_advanced_scrape(keywords=keyword, location=location or "Remote", out_dir="exports", config=cfg, enrich=True)
+    except Exception:
+        # Scrape best-effort; still return whatever is in DB
+        pass
+    # Return latest jobs filtered by keyword/location
+    filters = JobFilter(keyword=keyword, location=location or None, limit=100, offset=0, order_by="-created_at")
+    return crud.list_jobs(db, filters)
+
+
 @router.get("/suggest/keywords", response_model=list[str])
 def suggest_keywords(q: str = "", limit: int = 10, db: Session = Depends(get_db)):
     return crud.suggest_keywords(db, q=q, limit=limit)

@@ -18,10 +18,10 @@ export default function App() {
 
 	useEffect(() => {
 		setLoading(true)
-		api.jobs({ keyword, ...filters, limit: 50, offset: 0 })
+		api.search({ keyword: keyword || '', location: filters.location || '', max_pages: maxPages })
 			.then(setJobs)
 			.finally(() => setLoading(false))
-	}, [keyword, filters.order_by, filters.company, filters.location])
+	}, [keyword, filters.order_by, filters.company, filters.location, maxPages])
 
 	async function runScrape() {
 		setScraping(true)

@@ -18,6 +18,10 @@ export const api = {
 		const q = new URLSearchParams(params)
 		return http(`/jobs?${q.toString()}`)
 	},
+	search(params = {}) {
+		const q = new URLSearchParams(params)
+		return http(`/search?${q.toString()}`)
+	},
 	suggestKeywords(q = '', limit = 10) {
 		return http(`/suggest/keywords?q=${encodeURIComponent(q)}&limit=${limit}`)
 	},
