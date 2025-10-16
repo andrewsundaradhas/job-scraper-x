@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+	--bg-glass: rgba(255,255,255,0.85);
+}
+
+html, body, #root {
+	height: 100%;
+}
+
+.glass {
+	background: var(--bg-glass);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	border: 1px solid rgba(255,255,255,0.3);
+	box-shadow: 0 10px 30px rgba(2,6,23,0.08);
+}
