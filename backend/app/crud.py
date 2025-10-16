@@ -116,9 +116,25 @@ def suggest_keywords(db: Session, q: str, limit: int = 10) -> list[str]:
         .scalars()
         .all()
     )
-    merged = []
+    # Tokenize words from popular titles/keywords for prefix matches
+    tokens: list[str] = []
+    prefix = (q or "").strip().lower()
+    def add_token(t: str):
+        t = (t or "").strip()
+        if not t:
+            return
+        for part in t.replace("/", " ").replace("-", " ").split():
+            if prefix and not part.lower().startswith(prefix):
+                continue
+            tokens.append(part)
+    for t in titles:
+        add_token(t)
+    for t in keywords:
+        add_token(t)
+
+    merged: list[str] = []
     seen = set()
-    for term in [*titles, *keywords]:
+    for term in [*tokens, *titles, *keywords, "Engineer", "Developer", "Data Scientist", "Product Manager", "Designer", "Analyst"]:
         if term and term not in seen:
             merged.append(term)
             seen.add(term)

@@ -8,6 +8,8 @@ from .. import crud
 from ..schemas import JobRead, JobFilter, JobCreate
 from ..services.scraper import scrape_linkedin_jobs
 from ..services.linkedin_scraper_advanced import run_advanced_scrape, ScrapeConfig
+import os
+import pandas as pd
 from ..services.alerts import send_email_alert, send_telegram_alert
 
 router = APIRouter(tags=["jobs"])
@@ -79,6 +81,8 @@ def scrape_advanced(
     headless: bool = True,
     delay_min: float = 2.0,
     delay_max: float = 5.0,
+    persist: bool = True,
+    db: Session = Depends(get_db),
 ):
     cfg = ScrapeConfig(delay_min=delay_min, delay_max=delay_max, headless=headless, max_pages=max_pages)
     result = run_advanced_scrape(keywords=keywords, location=location, out_dir="exports", config=cfg, enrich=enrich)
@@ -88,6 +92,29 @@ def scrape_advanced(
         if p:
             files[k] = f"/exports/{p.split('exports/')[-1]}"
     result["files"] = files
+    # Optionally persist basic fields to DB so UI can query immediately
+    if persist and files.get("csv"):
+        csv_fs_path = os.path.join("exports", os.path.basename(files["csv"]))
+        try:
+            df = pd.read_csv(csv_fs_path)
+            for _, row in df.iterrows():
+                try:
+                    from ..schemas import JobCreate
+                    job = JobCreate(
+                        title=str(row.get("title") or ""),
+                        company=(row.get("company") if pd.notna(row.get("company")) else None),
+                        location=(row.get("location") if pd.notna(row.get("location")) else None),
+                        posted_date=None,
+                        job_link=str(row.get("job_link") or ""),
+                        experience_level=(row.get("employment_type") if pd.notna(row.get("employment_type")) else None),
+                        job_type=None,
+                        keywords=keywords,
+                    )
+                    crud.create_job_if_not_exists(db, job)
+                except Exception:
+                    continue
+        except Exception:
+            pass
     return result
 
 
