@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.staticfiles import StaticFiles
 from .config import settings
 from .database import Base, engine
 from .scheduler import start_scheduler
@@ -90,3 +91,9 @@ try:
 except Exception:
 	# During first-run scaffolding, routers may not exist yet.
 	pass
+
+# Serve exported files (CSV/JSON) for download
+try:
+    app.mount("/exports", StaticFiles(directory="exports"), name="exports")
+except Exception:
+    pass

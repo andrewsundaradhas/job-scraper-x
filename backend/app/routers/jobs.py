@@ -7,6 +7,7 @@ from ..database import get_db
 from .. import crud
 from ..schemas import JobRead, JobFilter, JobCreate
 from ..services.scraper import scrape_linkedin_jobs
+from ..services.linkedin_scraper_advanced import run_advanced_scrape, ScrapeConfig
 from ..services.alerts import send_email_alert, send_telegram_alert
 
 router = APIRouter(tags=["jobs"])
@@ -69,6 +70,25 @@ def trigger_scrape(keywords: str, location: str, max_pages: int = 10, db: Sessio
 		send_telegram_alert(db, job.id, text)
 
 	return {"found": len(results), "created": len(new_jobs)}
+@router.post("/scrape/advanced")
+def scrape_advanced(
+    keywords: str,
+    location: str,
+    enrich: bool = True,
+    max_pages: int = 10,
+    headless: bool = True,
+    delay_min: float = 2.0,
+    delay_max: float = 5.0,
+):
+    cfg = ScrapeConfig(delay_min=delay_min, delay_max=delay_max, headless=headless, max_pages=max_pages)
+    result = run_advanced_scrape(keywords=keywords, location=location, out_dir="exports", config=cfg, enrich=enrich)
+    # Attach URLs for download via mounted static route
+    files = result.get("files", {})
+    for k, p in list(files.items()):
+        if p:
+            files[k] = f"/exports/{p.split('exports/')[-1]}"
+    result["files"] = files
+    return result
 
 
 @router.get("/suggest/keywords", response_model=list[str])

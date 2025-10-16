@@ -3,7 +3,7 @@ import Header from '../components/Header'
 import Filters from '../components/Filters'
 import JobCard from '../components/JobCard'
 import { Button } from '../components/ui/button'
-import { api } from '../lib/api'
+import { api, ROOT_URL } from '../lib/api'
 import { useSearchParams } from 'react-router-dom'
 
 export default function App() {
@@ -42,6 +42,18 @@ export default function App() {
 				<div className="flex items-center gap-3">
 					<input type="number" min={1} max={50} value={maxPages} onChange={e=>setMaxPages(Number(e.target.value)||10)} className="w-24 bg-transparent border rounded px-3 py-2" title="Max pages"/>
 					<Button onClick={runScrape} disabled={scraping}>{scraping ? 'Scraping…' : 'Run Scrape'}</Button>
+					<Button variant="outline" onClick={async ()=>{
+						setScraping(true)
+						try {
+							const res = await api.advancedScrape({ keywords: keyword || 'Software Engineer', location: filters.location || 'Remote', max_pages: maxPages, enrich: true })
+							await api.jobs({ keyword, ...filters, limit: 50, offset: 0 }).then(setJobs)
+							if (res?.files) {
+								const links = Object.values(res.files).filter(Boolean)
+								if (links.length) {
+									window.open(`${ROOT_URL}${links[0]}`, '_blank')
+								}
+							}
+						} finally { setScraping(false) }} } disabled={scraping}>Advanced Scrape</Button>
 				</div>
 			</div>
 			{loading ? (

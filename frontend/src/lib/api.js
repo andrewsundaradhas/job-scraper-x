@@ -1,4 +1,5 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+export const ROOT_URL = BASE_URL.replace(/\/?api$/, '')
 
 async function http(path, opts = {}) {
 	const res = await fetch(`${BASE_URL}${path}`, {
@@ -33,5 +34,9 @@ export const api = {
 	scrape({ keywords, location, max_pages = 10 }) {
 		const q = new URLSearchParams({ keywords, location, max_pages })
 		return http(`/scrape?${q.toString()}`, { method: 'POST' })
+	},
+	advancedScrape({ keywords, location, max_pages = 10, enrich = true, headless = true, delay_min = 2, delay_max = 5 }) {
+		const q = new URLSearchParams({ keywords, location, max_pages, enrich, headless, delay_min, delay_max })
+		return http(`/scrape/advanced?${q.toString()}`, { method: 'POST' })
 	}
 }
